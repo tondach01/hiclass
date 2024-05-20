@@ -59,4 +59,3 @@ if __name__ == "__main__":
     selector = SelectKBest(f_classif, k=10)
     selector.fit_transform(x)
     print(x.shape)
-
