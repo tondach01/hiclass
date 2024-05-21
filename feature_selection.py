@@ -1,5 +1,6 @@
 import load
 import handle_nan
+import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
 
 
@@ -52,14 +53,25 @@ class Hierarchy:
         self.root.print_node()
 
 
+def select_k_best(x: pd.DataFrame, y: pd.DataFrame, k=10) -> list:
+    """
+    Perform selection of k best parameters based on mutual information
+
+    :param x: features
+    :param y: labels
+    :param k: number of features to be chosen
+    :return: names of selected features
+    """
+    y = y.map(lambda label: "/".join(label))
+    x = handle_nan.impute_mean(x)
+    selector = SelectKBest(mutual_info_classif, k=k).fit(x, y)
+    return selector.get_feature_names_out(input_features=x.columns)
+
+
 if __name__ == "__main__":
     #h = unique_labels(load.Dataset("cellcycle").y_train())
     #Hierarchy(h).print_hierarchy()
     dataset = load.Dataset("cellcycle", expand=True)
     x, y = dataset.x_train(), dataset.y_train()
-    y = y.map(lambda label: "/".join(label))
-    x = handle_nan.impute_mean(x)
-    print(x.shape)
-    selector = SelectKBest(mutual_info_classif, k=10)
-    x_new = selector.fit_transform(x, y)
-    print(x_new.shape)
+    x_new = x.get(select_k_best(x, y))
+    print(x_new.head())
