@@ -56,7 +56,7 @@ class Dataset:
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
                 if expand:
-                    data = expand_multi_class(data)
+                    data = self.expand_multi_class(data)
 
             return data
 
