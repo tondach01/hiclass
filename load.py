@@ -13,11 +13,12 @@ class Dataset:
         datasets_FUN -> XXX_FUN -> XXX_FUN.{train,test,valid}.arff.zip
     """
 
-    def __init__(self, dataset_name: str):
+    def __init__(self, dataset_name: str, expand: bool = False):
         """
         Create Dataset object, consisting of training/testing/validation data
 
         :param dataset_name: name of the dataset (without _FUN suffix)
+        :param expand: whether to expand multi-class rows
 
         One of {cellcycle, church, derisi, eisen, expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
         """
@@ -54,6 +55,8 @@ class Dataset:
                         types[attr[1]] = "category"
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
+                if expand:
+                    data = expand_multi_class(data)
 
             return data
 
@@ -118,6 +121,16 @@ class Dataset:
         :return: copy of dataframe with features removed
         """
         return self._y(self.valid)
+
+    @staticmethod
+    def expand_multi_class(df: pd.DataFrame):
+        """
+        Expand the dataset so that each row has just one class label
+
+        :param df: dataset to be expanded
+        :return: the same dataset, but multi-label rows are duplicated for each label
+        """
+        return df.explode("class", ignore_index=True)
 
 
 if __name__ == "__main__":
