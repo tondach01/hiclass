@@ -1,4 +1,5 @@
 import load
+import handle_nan
 from sklearn.feature_selection import f_classif, SelectKBest
 
 
@@ -54,8 +55,10 @@ class Hierarchy:
 if __name__ == "__main__":
     #h = unique_labels(load.Dataset("cellcycle").y_train())
     #Hierarchy(h).print_hierarchy()
-    x = load.Dataset("cellcycle").x_train()
+    dataset = load.Dataset("cellcycle")
+    x, y = dataset.x_train(), dataset.y_train()
+    x = handle_nan.impute_mean(x)
     print(x.shape)
     selector = SelectKBest(f_classif, k=10)
-    selector.fit_transform(x)
+    selector.fit_transform(x, y)
     print(x.shape)
