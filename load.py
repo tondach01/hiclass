@@ -130,6 +130,7 @@ class Dataset:
         :param df: dataset to be expanded
         :return: the same dataset, but multi-label rows are duplicated for each label
         """
+        df["class"] = df["class"].apply(lambda x: [label for label in x.split("@")])
         return df.explode("class", ignore_index=True)
 
 
@@ -138,5 +139,5 @@ if __name__ == "__main__":
     # struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
     for dataset in ["cellcycle", "church", "derisi", "eisen", "expr", "gasch1",
                     "gasch2", "hom", "pheno", "seq", "spo", "struc"]:
-        d = Dataset(dataset)
+        d = Dataset(dataset, expand=True)
         y = d.y_train()
