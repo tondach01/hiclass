@@ -1,6 +1,6 @@
 import load
 import handle_nan
-from sklearn.feature_selection import f_classif, SelectKBest
+from sklearn.feature_selection import mutual_info_classif, SelectKBest
 
 
 def unique_labels(y):
@@ -55,10 +55,11 @@ class Hierarchy:
 if __name__ == "__main__":
     #h = unique_labels(load.Dataset("cellcycle").y_train())
     #Hierarchy(h).print_hierarchy()
-    dataset = load.Dataset("cellcycle")
+    dataset = load.Dataset("cellcycle", expand=True)
     x, y = dataset.x_train(), dataset.y_train()
+    y = y.map(lambda label: "/".join(label))
     x = handle_nan.impute_mean(x)
     print(x.shape)
-    selector = SelectKBest(f_classif, k=10)
-    selector.fit_transform(x, y)
-    print(x.shape)
+    selector = SelectKBest(mutual_info_classif, k=10)
+    x_new = selector.fit_transform(x, y)
+    print(x_new.shape)

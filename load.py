@@ -55,6 +55,7 @@ class Dataset:
                         types[attr[1]] = "category"
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
+                data["class"] = data["class"].map(lambda x: [label for label in x.split("@")])
                 if expand:
                     data = self.expand_multi_class(data)
 
@@ -72,7 +73,7 @@ class Dataset:
 
     @staticmethod
     def _y(data: pd.DataFrame):
-        return data["class"].copy().apply(lambda x: [label.split("/") for label in x.split("@")])
+        return data["class"].copy().apply(lambda x: x.split("/"))
 
     def x_train(self):
         """
@@ -130,7 +131,6 @@ class Dataset:
         :param df: dataset to be expanded
         :return: the same dataset, but multi-label rows are duplicated for each label
         """
-        df["class"] = df["class"].apply(lambda x: [label for label in x.split("@")])
         return df.explode("class", ignore_index=True)
 
 
