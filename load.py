@@ -21,6 +21,9 @@ class Dataset:
         :param expand: whether to expand multi-class rows
 
         One of {cellcycle, church, derisi, eisen, expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
+
+        the hom_FUN dataset is quite large and takes a lot of time to process
+        struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
         """
         path = sep.join(["datasets_FUN", f"{dataset_name}_FUN"])
 
@@ -132,12 +135,3 @@ class Dataset:
         :return: the same dataset, but multi-label rows are duplicated for each label
         """
         return df.explode("class", ignore_index=True)
-
-
-if __name__ == "__main__":
-    # the hom_FUN dataset is quite large and takes a lot of time to process
-    # struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
-    for dataset in ["cellcycle", "church", "derisi", "eisen", "expr", "gasch1",
-                    "gasch2", "hom", "pheno", "seq", "spo", "struc"]:
-        d = Dataset(dataset, expand=True)
-        y = d.y_train()

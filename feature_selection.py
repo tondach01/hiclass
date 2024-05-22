@@ -1,4 +1,3 @@
-import load
 import handle_nan
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
@@ -66,12 +65,3 @@ def select_k_best(x: pd.DataFrame, y: pd.DataFrame, k=10) -> list:
     x = handle_nan.impute_mean(x)
     selector = SelectKBest(mutual_info_classif, k=k).fit(x, y)
     return selector.get_feature_names_out(input_features=x.columns)
-
-
-if __name__ == "__main__":
-    #h = unique_labels(load.Dataset("cellcycle").y_train())
-    #Hierarchy(h).print_hierarchy()
-    dataset = load.Dataset("cellcycle", expand=True)
-    x, y = dataset.x_train(), dataset.y_train()
-    x_new = x.get(select_k_best(x, y))
-    print(x_new.head())
