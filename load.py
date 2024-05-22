@@ -1,6 +1,7 @@
 import zipfile
 from os import sep, remove
 import pandas as pd
+import numpy as np
 
 
 class Dataset:
@@ -26,6 +27,7 @@ class Dataset:
         struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
         """
         path = sep.join(["datasets_FUN", f"{dataset_name}_FUN"])
+        self.expand = expand
 
         def _read(which: str):
             file = f"{dataset_name}_FUN.{which}.arff"
@@ -68,15 +70,19 @@ class Dataset:
         self.test = _read("test")
         self.valid = _read("valid")
 
-    @staticmethod
-    def _x(data: pd.DataFrame):
+    def _x(self, data: pd.DataFrame):
         df = data.copy()
+        if self.expand:
+            df = self.expand_multi_class(df)
         df.pop("class")
         return df
 
-    @staticmethod
-    def _y(data: pd.DataFrame):
-        return data["class"].copy().apply(lambda x: x.split("/"))
+    def _y(self, data: pd.DataFrame):
+        df = data.copy()
+        if self.expand:
+            df = self.expand_multi_class(df)
+            return df["class"].apply(lambda x: x.split("/"))
+        return df["class"].apply(lambda x: list(map((lambda y: y.split("/")), x)))
 
     def x_train(self):
         """
