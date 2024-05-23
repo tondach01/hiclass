@@ -1,6 +1,7 @@
 import handle_nan
 import pandas as pd
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
+from math import sqrt
 
 
 def unique_labels(y):
@@ -52,16 +53,19 @@ class Hierarchy:
         self.root.print_node()
 
 
-def select_k_best(x: pd.DataFrame, y: pd.DataFrame, k=10) -> list:
+def select_k_best(x: pd.DataFrame, y: pd.DataFrame, k=10, sqrt_features: bool = False) -> list:
     """
-    Perform selection of k best parameters based on mutual information
+    Perform "flat" selection of k best parameters based on mutual information. The hierarchy is ignored and labels
+    worked with as strings
 
     :param x: features
     :param y: labels
     :param k: number of features to be chosen
+    :param sqrt_features: take square root of number of features as k
     :return: names of selected features
     """
     y = y.map(lambda label: "/".join(label))
-    x = handle_nan.impute_mean(x)
+    if sqrt_features:
+        k = sqrt(x.shape[0])
     selector = SelectKBest(mutual_info_classif, k=k).fit(x, y)
     return selector.get_feature_names_out(input_features=x.columns)
