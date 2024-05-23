@@ -61,6 +61,9 @@ class Dataset:
                         types[attr[1]] = "category"
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
+
+                # TODO one-hot for categories
+
                 data["class"] = data["class"].map(lambda x: [label for label in x.split("@")])
 
                 if nan_strategy == "remove":
