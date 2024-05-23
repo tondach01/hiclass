@@ -1,7 +1,7 @@
 import zipfile
 from os import sep, remove
 import pandas as pd
-import numpy as np
+from sklearn.preprocessing import OneHotEncoder
 import handle_nan
 
 
@@ -34,46 +34,50 @@ class Dataset:
             file = f"{dataset_name}_FUN.{which}.arff"
             p = sep.join([path, file+".zip"])
             zipfile.ZipFile(p).extract(file)
+
+            # Apparently, scipy cannot read hierarchical attributes
+            def _read_arff(f: str):
+                attr_names = []
+                with open(f) as arff_file:
+                    reading_attrs = True
+                    types = {"class": "object"}
+                    # gasch1 dataset has two columns of the same name
+                    used_names, i = set(), 0
+                    while reading_attrs:
+                        attr = arff_file.readline().strip().split()
+                        if (not attr) or (attr[0].upper() != "@ATTRIBUTE"):
+                            if attr and attr[0].upper() == "@DATA":
+                                reading_attrs = False
+                            continue
+                        if attr[1] in used_names:
+                            attr[1] += f"_{i}"
+                            i += 1
+                        attr_names.append(attr[1])
+                        used_names.add(attr[1])
+                        if attr[2].startswith("{"):
+                            types[attr[1]] = "category"
+
+                    d = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
+
+                    # might be a problem when "mean" imputing one-hot encoded category with > 2 levels
+                    d = OneHotEncoder().fit_transform(d)
+
+                    d["class"] = d["class"].map(lambda x: [label for label in x.split("@")])
+
+                    # touches also test data, but since HiClass classifiers cannot handle NaN values, this has to be
+                    # done anyway
+                    if nan_strategy == "remove" and which != "test":
+                        d = handle_nan.remove_nan(d)
+                    elif nan_strategy == "knn":
+                        k = args.get("k", 5)
+                        d = handle_nan.impute_knn(d, k)
+                    else:
+                        d = handle_nan.impute_mean(d)
+
+                return d
+
             data = _read_arff(file)
             remove(file)
-            return data
-
-        # Apparently, scipy cannot read hierarchical attributes
-        def _read_arff(file: str):
-            attr_names = []
-            with open(file) as arff_file:
-                reading_attrs = True
-                types = {"class": "object"}
-                # gasch1 dataset has two columns of the same name
-                used_names, i = set(), 0
-                while reading_attrs:
-                    attr = arff_file.readline().strip().split()
-                    if (not attr) or (attr[0].upper() != "@ATTRIBUTE"):
-                        if attr and attr[0].upper() == "@DATA":
-                            reading_attrs = False
-                        continue
-                    if attr[1] in used_names:
-                        attr[1] += f"_{i}"
-                        i += 1
-                    attr_names.append(attr[1])
-                    used_names.add(attr[1])
-                    if attr[2].startswith("{"):
-                        types[attr[1]] = "category"
-
-                data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
-
-                # TODO one-hot for categories
-
-                data["class"] = data["class"].map(lambda x: [label for label in x.split("@")])
-
-                if nan_strategy == "remove":
-                    data = handle_nan.remove_nan(data)
-                elif nan_strategy == "knn":
-                    k = args.get("k", 5)
-                    data = handle_nan.impute_knn(data, k)
-                else:
-                    data = handle_nan.impute_mean(data)
-
             return data
 
         self.train = _read("train")
