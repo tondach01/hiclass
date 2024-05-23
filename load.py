@@ -65,6 +65,7 @@ class Dataset:
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
                 data["class"] = data["class"].map(lambda x: [label for label in x.split("@")])
+
                 if nan_strategy == "remove":
                     data = handle_nan.remove_nan(data)
                 elif nan_strategy == "knn":
