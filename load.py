@@ -2,6 +2,7 @@ import zipfile
 from os import sep, remove
 import pandas as pd
 import numpy as np
+import handle_nan
 
 
 class Dataset:
@@ -14,14 +15,17 @@ class Dataset:
         datasets_FUN -> XXX_FUN -> XXX_FUN.{train,test,valid}.arff.zip
     """
 
-    def __init__(self, dataset_name: str, expand: bool = False):
+    def __init__(self, dataset_name: str, expand: bool = False, nan_strategy: str = "mean", args=None):
         """
         Create Dataset object, consisting of training/testing/validation data
 
         :param dataset_name: name of the dataset (without _FUN suffix)
         :param expand: whether to expand multi-class rows
+        :param nan_strategy: strategy to be used for NaN values - one of "mean", "knn", "remove". If not
+        provided or not one of allowed, "mean" is used
+        :param args: possible dictionary of arguments to NaN-handling functions
 
-        One of {cellcycle, church, derisi, eisen, expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
+        dataset_name: one of {cellcycle, church, derisi, eisen, expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
 
         the hom_FUN dataset is quite large and takes a lot of time to process
         struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
@@ -61,8 +65,13 @@ class Dataset:
 
                 data = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
                 data["class"] = data["class"].map(lambda x: [label for label in x.split("@")])
-                if expand:
-                    data = self.expand_multi_class(data)
+                if nan_strategy == "remove":
+                    data = handle_nan.remove_nan(data)
+                elif nan_strategy == "knn":
+                    k = args.get("k", 5)
+                    data = handle_nan.impute_knn(data, k)
+                else:
+                    data = handle_nan.impute_mean(data)
 
             return data
 

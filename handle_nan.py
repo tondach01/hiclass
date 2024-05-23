@@ -25,13 +25,12 @@ def impute_knn(x: pd.DataFrame, k=5) -> pd.DataFrame:
     return pd.DataFrame(imp.transform(x), columns=imp.feature_names_in_)
 
 
-def remove_nan(x: pd.DataFrame, y: pd.DataFrame) -> tuple:
+def remove_nan(x: pd.DataFrame) -> pd.DataFrame:
     """
     Remove rows with NaN values from the data
 
-    :param x: data features, possibly containing NaN values
-    :param y: corresponding labels
+    :param x: data, possibly containing NaN values
     :return: features and labels without rows containing NaN
     """
     nan_rows = x[x.isnull().T.any()]
-    return x.drop(labels=nan_rows), y.drop(labels=nan_rows)
+    return x.drop(labels=nan_rows)
