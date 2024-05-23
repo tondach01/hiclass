@@ -15,24 +15,20 @@ class Dataset:
         datasets_FUN -> XXX_FUN -> XXX_FUN.{train,test,valid}.arff.zip
     """
 
-    def __init__(self, dataset_name: str, expand: bool = False, nan_strategy: str = "mean", args=None):
+    def __init__(self, dataset_name: str, nan_strategy: str = "mean", args=None):
         """
         Create Dataset object, consisting of training/testing/validation data
 
-        :param dataset_name: name of the dataset (without _FUN suffix)
-        :param expand: whether to expand multi-class rows
+        :param dataset_name: name of the dataset (without _FUN suffix) - one of {cellcycle, church, derisi, eisen,
+        expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
         :param nan_strategy: strategy to be used for NaN values - one of "mean", "knn", "remove". If not
         provided or not one of allowed, "mean" is used
         :param args: possible dictionary of arguments to NaN-handling functions
-
-        dataset_name: one of {cellcycle, church, derisi, eisen, expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
 
         the hom_FUN dataset is quite large and takes a lot of time to process
         struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
         """
         path = sep.join(["datasets_FUN", f"{dataset_name}_FUN"])
-        # TODO expand only in _x and _y when necessary (add parameter)
-        self.expand = expand
 
         def _read(which: str):
             file = f"{dataset_name}_FUN.{which}.arff"
@@ -81,67 +77,73 @@ class Dataset:
         self.test = _read("test")
         self.valid = _read("valid")
 
-    def _x(self, data: pd.DataFrame):
+    def _x(self, data: pd.DataFrame, expand: bool = False):
         df = data.copy()
-        if self.expand:
+        if expand:
             df = self.expand_multi_class(df)
         df.pop("class")
         return df
 
-    def _y(self, data: pd.DataFrame):
+    def _y(self, data: pd.DataFrame, expand: bool = False):
         df = data.copy()
-        if self.expand:
+        if expand:
             df = self.expand_multi_class(df)
             return df["class"].apply(lambda x: x.split("/"))
         return df["class"].apply(lambda x: list(map((lambda y: y.split("/")), x)))
 
-    def x_train(self):
+    def x_train(self, expand: bool = False):
         """
         Get features (not classes) of examples in training part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with classes removed
         """
-        return self._x(self.train)
+        return self._x(self.train, expand)
 
-    def y_train(self):
+    def y_train(self, expand: bool = False):
         """
         Get classes (not features) of examples in training part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with features removed
         """
-        return self._y(self.train)
+        return self._y(self.train, expand)
 
-    def x_test(self):
+    def x_test(self, expand: bool = False):
         """
         Get features (not classes) of examples in test part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with classes removed
         """
-        return self._x(self.test)
+        return self._x(self.test, expand)
 
-    def y_test(self):
+    def y_test(self, expand: bool = False):
         """
         Get classes (not features) of examples in test part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with features removed
         """
-        return self._y(self.test)
+        return self._y(self.test, expand)
 
-    def x_valid(self):
+    def x_valid(self, expand: bool = False):
         """
         Get features (not classes) of examples in validation part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with classes removed
         """
-        return self._x(self.valid)
+        return self._x(self.valid, expand)
 
-    def y_valid(self):
+    def y_valid(self, expand: bool = False):
         """
         Get classes (not features) of examples in validation part of dataset
 
+        :param expand: whether to expand multi-label rows to multiple records
         :return: copy of dataframe with features removed
         """
-        return self._y(self.valid)
+        return self._y(self.valid, expand)
 
     @staticmethod
     def expand_multi_class(df: pd.DataFrame):
