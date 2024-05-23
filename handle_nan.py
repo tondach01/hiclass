@@ -23,9 +23,10 @@ def impute_knn(x: pd.DataFrame, k=5) -> pd.DataFrame:
     :param k: number of nearest neighbors
     :return: new DataFrame with values imputed
     """
-    # TODO apply only on suitable columns
+    numeric = x.select_dtypes(include=["number"])
+    rest = x.select_dtypes(exclude=["number"])
     imp = KNNImputer(n_neighbors=k).fit(x)
-    return pd.DataFrame(imp.transform(x), columns=imp.feature_names_in_)
+    return pd.concat([pd.DataFrame(imp.transform(numeric), columns=imp.feature_names_in_), rest], axis=1)
 
 
 def remove_nan(x: pd.DataFrame) -> pd.DataFrame:

@@ -78,7 +78,7 @@ def fill_reshape(y: pd.Series) -> np.ndarray:
     return y
 
 
-def select_k_best(x: pd.DataFrame, y: pd.DataFrame, k=10, sqrt_features: bool = False) -> list:
+def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = False) -> list:
     """
     Perform "flat" selection of k best parameters based on mutual information. The hierarchy is ignored and labels
     worked with as strings

@@ -30,13 +30,13 @@ class Dataset:
         """
         path = sep.join(["datasets_FUN", f"{dataset_name}_FUN"])
 
-        def _read(which: str):
+        def _read(which: str) -> pd.DataFrame:
             file = f"{dataset_name}_FUN.{which}.arff"
             p = sep.join([path, file+".zip"])
             zipfile.ZipFile(p).extract(file)
 
             # Apparently, scipy cannot read hierarchical attributes
-            def _read_arff(f: str):
+            def _read_arff(f: str) -> pd.DataFrame:
                 attr_names = []
                 with open(f) as arff_file:
                     reading_attrs = True
@@ -84,21 +84,21 @@ class Dataset:
         self.test = _read("test")
         self.valid = _read("valid")
 
-    def _x(self, data: pd.DataFrame, expand: bool = False):
+    def _x(self, data: pd.DataFrame, expand: bool = False) -> pd.DataFrame:
         df = data.copy()
         if expand:
             df = self.expand_multi_class(df)
         df.pop("class")
         return df
 
-    def _y(self, data: pd.DataFrame, expand: bool = False):
+    def _y(self, data: pd.DataFrame, expand: bool = False) -> pd.Series:
         df = data.copy()
         if expand:
             df = self.expand_multi_class(df)
             return df["class"].apply(lambda x: x.split("/"))
         return df["class"].apply(lambda x: list(map((lambda y: y.split("/")), x)))
 
-    def x_train(self, expand: bool = False):
+    def x_train(self, expand: bool = False) -> pd.DataFrame:
         """
         Get features (not classes) of examples in training part of dataset
 
@@ -107,7 +107,7 @@ class Dataset:
         """
         return self._x(self.train, expand)
 
-    def y_train(self, expand: bool = False):
+    def y_train(self, expand: bool = False) -> pd.Series:
         """
         Get classes (not features) of examples in training part of dataset
 
@@ -116,7 +116,7 @@ class Dataset:
         """
         return self._y(self.train, expand)
 
-    def x_test(self, expand: bool = False):
+    def x_test(self, expand: bool = False) -> pd.DataFrame:
         """
         Get features (not classes) of examples in test part of dataset
 
@@ -125,7 +125,7 @@ class Dataset:
         """
         return self._x(self.test, expand)
 
-    def y_test(self, expand: bool = False):
+    def y_test(self, expand: bool = False) -> pd.Series:
         """
         Get classes (not features) of examples in test part of dataset
 
@@ -134,7 +134,7 @@ class Dataset:
         """
         return self._y(self.test, expand)
 
-    def x_valid(self, expand: bool = False):
+    def x_valid(self, expand: bool = False) -> pd.DataFrame:
         """
         Get features (not classes) of examples in validation part of dataset
 
@@ -143,7 +143,7 @@ class Dataset:
         """
         return self._x(self.valid, expand)
 
-    def y_valid(self, expand: bool = False):
+    def y_valid(self, expand: bool = False) -> pd.Series:
         """
         Get classes (not features) of examples in validation part of dataset
 
@@ -153,7 +153,7 @@ class Dataset:
         return self._y(self.valid, expand)
 
     @staticmethod
-    def expand_multi_class(df: pd.DataFrame):
+    def expand_multi_class(df: pd.DataFrame) -> pd.DataFrame:
         """
         Expand the dataset so that each row has just one class label
 
