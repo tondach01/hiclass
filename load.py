@@ -31,6 +31,7 @@ class Dataset:
         struc_FUN takes moderate amount of time (around 5 minutes on my laptop)
         """
         path = sep.join(["datasets_FUN", f"{dataset_name}_FUN"])
+        # TODO expand only in _x and _y when necessary (add parameter)
         self.expand = expand
 
         def _read(which: str):
