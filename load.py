@@ -75,7 +75,9 @@ class Dataset:
                     if nan_strategy == "remove" and which != "test":
                         d = handle_nan.remove_nan(d)
                     elif nan_strategy == "knn":
-                        k = args.get("k", 5)
+                        k = 5
+                        if args is not None:
+                            k = args.get("k", 5)
                         d = handle_nan.impute_knn(d, k)
                     else:
                         d = handle_nan.impute_mean(d)

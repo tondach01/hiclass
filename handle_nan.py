@@ -25,7 +25,7 @@ def impute_knn(x: pd.DataFrame, k=5) -> pd.DataFrame:
     """
     numeric = x.select_dtypes(include=["number"])
     rest = x.select_dtypes(exclude=["number"])
-    imp = KNNImputer(n_neighbors=k).fit(x)
+    imp = KNNImputer(n_neighbors=k).fit(numeric)
     return pd.concat([pd.DataFrame(imp.transform(numeric), columns=imp.feature_names_in_), rest], axis=1)
 
 
@@ -36,5 +36,5 @@ def remove_nan(x: pd.DataFrame) -> pd.DataFrame:
     :param x: data, possibly containing NaN values
     :return: features and labels without rows containing NaN
     """
-    nan_rows = x[x.isnull().T.any()]
+    nan_rows = x[x.isnull().T.any()].index
     return x.drop(labels=nan_rows)
