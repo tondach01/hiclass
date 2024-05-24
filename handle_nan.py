@@ -29,6 +29,7 @@ def impute_knn(x: pd.DataFrame, k=5) -> pd.DataFrame:
     return pd.concat([pd.DataFrame(imp.transform(numeric), columns=imp.feature_names_in_), rest], axis=1)
 
 
+# disclaimer: may remove all the rows
 def remove_nan(x: pd.DataFrame) -> pd.DataFrame:
     """
     Remove rows with NaN values from the data
