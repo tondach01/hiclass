@@ -60,7 +60,13 @@ class Dataset:
                     d = pd.read_csv(arff_file, names=attr_names, na_values=["?"], dtype=types)
 
                     # might be a problem when "mean" imputing one-hot encoded category with > 2 levels
-                    d = OneHotEncoder().fit_transform(d)
+                    categories = [column for column, t in types.items() if t == "category"]
+                    if categories:
+                        enc = OneHotEncoder(sparse_output=False)
+                        encoded_columns = enc.fit_transform(d[categories])
+                        encoded_df = pd.DataFrame(encoded_columns,
+                                                  columns=enc.get_feature_names_out(categories))
+                        d = pd.concat([d.drop(columns=categories), encoded_df], axis=1)
 
                     d["class"] = d["class"].map(lambda x: [label for label in x.split("@")])
 
