@@ -88,6 +88,27 @@ def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = Fal
     :param k: number of features to be chosen
     :param sqrt_features: take square root of number of features as k
     :return: names of selected features
+
+    Sample usage:
+        import load
+        import feature_selection
+        from sklearn.tree import DecisionTreeClassifier
+        from hiclass.MultiLabelLocalClassifierPerNode import MultiLabelLocalClassifierPerNode
+        from hiclass.metrics import f1
+
+        x_train, y_train = dataset.x_train(expand=True), dataset.y_train(expand=True)
+        x_test, y_test = dataset.x_test(), dataset.y_test()
+
+        tree = DecisionTreeClassifier()
+        classifier = MultiLabelLocalClassifierPerNode(local_classifier=tree)
+
+        feats = feature_selection.select_k_best(x_train, y_train, k=5)
+
+        # to force multi-label classification, unexpanded data have to be fed in
+        classifier.fit(dataset.x_train().get(feats), dataset.y_train())
+
+        y_pred = classifier.predict(x_test.get(feats))
+        print(f1(fill_reshape(y_test), y_pred))
     """
     y = y.map(lambda label: "/".join(label))
     if sqrt_features:
@@ -113,6 +134,29 @@ def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_val
     :param epochs: number of turns to be taken
     :param r_seed: seed for sample generation
     :return: names of selected features
+
+    Sample usage:
+        import load
+        import feature_selection
+        from sklearn.tree import DecisionTreeClassifier
+        from hiclass.MultiLabelLocalClassifierPerNode import MultiLabelLocalClassifierPerNode
+        from hiclass.metrics import f1
+
+        dataset = load.Dataset("cellcycle", nan_strategy="mean")
+
+        x_train, y_train = dataset.x_train(), dataset.y_train()
+        x_valid, y_valid = dataset.x_valid(), dataset.y_valid()
+        x_test, y_test = dataset.x_test(), dataset.y_test()
+
+        tree = DecisionTreeClassifier()
+        classifier = MultiLabelLocalClassifierPerNode(local_classifier=tree)
+
+        feats = feature_selection.iterative_select(x_train, y_train, x_valid, y_valid, sqrt_features=True, r_seed=42)
+
+        classifier.fit(x_train.get(feats), y_train)
+
+        y_pred = classifier.predict(x_test.get(feats))
+        print(f1(fill_reshape(y_test), y_pred))
     """
     if sqrt_features:
         k = floor(sqrt(x.shape[1]))
