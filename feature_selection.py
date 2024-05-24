@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.feature_selection import mutual_info_classif, SelectKBest
-from math import sqrt
+from math import sqrt, floor
 from sklearn.tree import DecisionTreeClassifier
 from hiclass.MultiLabelLocalClassifierPerNode import MultiLabelLocalClassifierPerNode
 from hiclass.metrics import f1
@@ -62,7 +62,7 @@ def fill_reshape(y: pd.Series) -> np.ndarray:
     Transform the multi-label part of the dataset to regular shape, so F1 metric can be used
 
     :param y: labels (not expanded)
-    :return: array of x=hierarchy, y=examples, z=labels per example
+    :return: array of x=hierarchy, y=labels per example, z=examples
     """
     max_len = y.apply(len).agg(max)
     depth = y.apply(lambda x: max([len(label) for label in x])).agg(max)
@@ -91,7 +91,7 @@ def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = Fal
     """
     y = y.map(lambda label: "/".join(label))
     if sqrt_features:
-        k = sqrt(x.shape[0])
+        k = floor(sqrt(x.shape[1]))
     selector = SelectKBest(mutual_info_classif, k=k).fit(x, y)
     return selector.get_feature_names_out(input_features=x.columns)
 
@@ -115,12 +115,12 @@ def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_val
     :return: names of selected features
     """
     if sqrt_features:
-        k = sqrt(x.shape[0])
+        k = floor(sqrt(x.shape[1]))
 
     if r_seed is not None:
         seed(r_seed)
 
-    columns = x.columns
+    columns = list(x.columns)
     f1_best = 0
     sample_best = []
 
@@ -131,13 +131,13 @@ def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_val
 
         classifier.fit(x.get(s), y)
 
-        y_pred = classifier.predict(x_valid)
+        y_pred = classifier.predict(x_valid.get(s))
         score = f1(fill_reshape(y_valid), y_pred)
 
         if score > f1_best:
             f1_best = score
             sample_best = s
 
-        print(f"Epoch {i}/{epochs}: score {round(score, 5)}")
+        print(f"Epoch {i+1}/{epochs}: F1 score on validation set {round(score, 5)}")
 
     return sample_best
