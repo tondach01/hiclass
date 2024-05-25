@@ -1,9 +1,17 @@
 import pandas as pd
 import numpy as np
-from sklearn.feature_selection import mutual_info_classif, SelectKBest
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.utils.validation import check_is_fitted
+from sklearn.feature_selection import (
+    SelectorMixin,
+    mutual_info_classif,
+    SelectKBest,
+)
 from math import sqrt, floor
 from sklearn.tree import DecisionTreeClassifier
-from hiclass.MultiLabelLocalClassifierPerNode import MultiLabelLocalClassifierPerNode
+from hiclass.MultiLabelLocalClassifierPerNode import (
+    MultiLabelLocalClassifierPerNode,
+)
 from hiclass.metrics import f1
 from random import sample, seed
 
@@ -96,6 +104,33 @@ def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = Fal
     return selector.get_feature_names_out(input_features=x.columns)
 
 
+class ModSelectKBest(SelectorMixin, BaseEstimator):
+    def __init__(self, *, k=10, sqrt_features=False):
+        self.k = k
+        self.sqrt_features = sqrt_features
+
+    def set_params(self, k=10, sqrt_features=False) -> 'ModSelectKBest':
+        self.k = k
+        self.sqrt_features = sqrt_features
+        return self
+
+    def fit(self, x, y):
+        self.n_features_in_ = x.shape[1]
+        y = y.map(lambda label: "/".join(label))
+        if self.sqrt_features:
+            self.k = floor(sqrt(x.shape[1]))
+        self.selector_ = SelectKBest(mutual_info_classif, k=self.k).fit(x, y)
+        return self
+
+    def _get_support_mask(self):
+        check_is_fitted(self)
+
+        return self.selector_.get_support(False)
+
+    def _more_tags(self):
+        return {"requires_y": True}
+
+
 def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_valid: pd.Series, k=10,
                      sqrt_features: bool = False, epochs: int = 10, r_seed=None) -> list:
     """
@@ -138,6 +173,93 @@ def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_val
             f1_best = score
             sample_best = s
 
-        print(f"Epoch {i+1}/{epochs}: F1 score on validation set {round(score, 5)}")
+        print(f"Epoch {i+1}/{epochs}: F1 score "
+              f"on validation set {round(score, 5)}",
+              flush=True)
 
     return sample_best
+
+
+class IterativeSelect(SelectorMixin, BaseEstimator):
+    def __init__(self,
+                 *,
+                 x_valid: pd.DataFrame,
+                 y_valid: pd.DataFrame,
+                 k=10,
+                 sqrt_features=False,
+                 epochs=10,
+                 r_seed=None,
+                 verbose=False):
+        self.x_valid = x_valid
+        self.y_valid = y_valid
+        self.k = k
+        self.sqrt_features = sqrt_features
+        self.epochs = epochs
+        self.r_seed = r_seed
+        self.verbose = verbose
+
+    def set_params(self,
+                   *,
+                   x_valid: pd.DataFrame,
+                   y_valid: pd.DataFrame,
+                   k=10,
+                   sqrt_features=False,
+                   epochs=10,
+                   r_seed=None) -> 'IterativeSelect':
+        self.x_valid = x_valid
+        self.y_valid = y_valid
+        self.k = k
+        self.sqrt_features = sqrt_features
+        self.epochs = epochs
+        self.r_seed = r_seed
+
+    def _get_support_mask(self):
+        check_is_fitted(self)
+
+        mask = np.zeros(len(self.x_valid.columns), dtype=bool)
+        mask[self.sample_best_] = True
+        return mask
+
+    def fit(self, x, y) -> 'IterativeSelect':
+        self.n_features_in_ = x.shape[1]
+
+        if self.sqrt_features:
+            self.k = floor(sqrt(x.shape[1]))
+
+        if self.r_seed is not None:
+            seed(self.r_seed)
+
+        y_valid_reshaped = fill_reshape(self.y_valid)
+
+        f1_best = 0
+        self.sample_best_ = []
+
+        for i in range(self.epochs):
+            s = np.zeros(self.n_features_in_, dtype=bool)
+            s[np.random.choice(self.n_features_in_,
+                               self.k,
+                               replace=False)] = True
+
+            tree = DecisionTreeClassifier()
+            classifier = MultiLabelLocalClassifierPerNode(
+                local_classifier=tree
+            )
+
+            classifier.fit(x.loc[:, s], y)
+
+            y_pred = classifier.predict(self.x_valid.loc[:, s])
+            score = f1(y_valid_reshaped, y_pred)
+
+            if score > f1_best:
+                f1_best = score
+                self.sample_best_ = s
+
+            if self.verbose:
+                print(f"Epoch {i+1}/{self.epochs}: F1 score "
+                      f"on validation set {round(score, 5)}",
+                      flush=True)
+
+        return self
+
+    def _more_tags(self):
+        return {"requires_y": True}
