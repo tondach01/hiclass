@@ -79,7 +79,7 @@ class Dataset:
                         if args is not None:
                             k = args.get("k", 5)
                         d = handle_nan.impute_knn(d, k)
-                    else:
+                    elif nan_strategy == "mean":
                         d = handle_nan.impute_mean(d)
 
                 return d
