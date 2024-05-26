@@ -1,3 +1,4 @@
+from typing import Literal, Union
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.impute import SimpleImputer, KNNImputer
@@ -42,8 +43,16 @@ def remove_nan(x: pd.DataFrame) -> pd.DataFrame:
     return x.drop(labels=nan_rows)
 
 
+ImputerStrategy = Union[Literal["drop"],
+                        Literal["knn"],
+                        Literal["mean"],
+                        Literal["median"],
+                        Literal["most_frequent"],
+                        Literal["constant"]]
+
+
 class NumericImputer(TransformerMixin, BaseEstimator):
-    def __init__(self, strategy='mean', **kwargs):
+    def __init__(self, strategy: ImputerStrategy = 'mean', **kwargs):
         self.strategy = strategy
         self.kwargs = kwargs
 

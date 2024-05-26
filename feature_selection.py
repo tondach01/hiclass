@@ -24,8 +24,8 @@ def fill_reshape(y) -> np.ndarray:
     :return: array of x=hierarchy, y=labels per example, z=examples
     """
     if isinstance(y, pd.Series):
-        max_len = y.apply(len).agg(max)
-        depth = y.apply(lambda x: max([len(label) for label in x])).agg(max)
+        max_len = y.apply(len).agg("max")
+        depth = y.apply(lambda x: max(map(len, x))).agg("max")
     else:
         max_len = max(map(len, y))
         depth = max(map(lambda x: max(map(len, x)), y))
@@ -199,11 +199,12 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
         mask[self.sample_best_] = True
         return mask
 
-    def fit(self, x, y) -> 'IterativeSelect':
-        self.n_features_in_ = x.shape[1]
+    def fit(self, X, y) -> 'IterativeSelect':
+        self.n_features_in_ = X.shape[1]
+        self.feature_names_in_ = X.columns
 
         if self.sqrt_features:
-            self.k = floor(sqrt(x.shape[1]))
+            self.k = floor(sqrt(X.shape[1]))
 
         if self.r_seed is not None:
             seed(self.r_seed)
@@ -224,7 +225,7 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
                 local_classifier=tree
             )
 
-            classifier.fit(x.loc[:, s], y)
+            classifier.fit(X.loc[:, s], y)
 
             y_pred = classifier.predict(self.x_valid.loc[:, s])
             score = f1(y_valid_reshaped, y_pred)
