@@ -81,7 +81,7 @@ def fill_reshape(y: pd.Series) -> np.ndarray:
 
     return np.array([
         [
-            label + [""] * (depth - len(label))
+            list(label) + [""] * (depth - len(label))
             for label in row
         ] + [
             [""] * depth
