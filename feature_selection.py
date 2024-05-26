@@ -72,18 +72,22 @@ def fill_reshape(y: pd.Series) -> np.ndarray:
     :param y: labels (not expanded)
     :return: array of x=hierarchy, y=labels per example, z=examples
     """
-    max_len = y.apply(len).agg(max)
-    depth = y.apply(lambda x: max([len(label) for label in x])).agg(max)
+    if isinstance(y, pd.Series):
+        max_len = y.apply(len).agg(max)
+        depth = y.apply(lambda x: max([len(label) for label in x])).agg(max)
+    else:
+        max_len = max(map(len, y))
+        depth = max(map(lambda x: max(map(len, x)), y))
 
-    def align(row: list):
-        new = []
-        for label in row:
-            new.append(label + [""] * (depth-len(label)))
-        return new + [[""] * depth] * (max_len-len(row))
-
-    y = np.array(list(y.apply(align)))
-
-    return y
+    return np.array([
+        [
+            label + [""] * (depth - len(label))
+            for label in row
+        ] + [
+            [""] * depth
+        ] * (max_len - len(row))
+        for row in y
+    ])
 
 
 class ModSelectKBest(SelectorMixin, BaseEstimator):
@@ -306,11 +310,7 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
             classifier.fit(x.loc[:, s], y)
 
             y_pred = classifier.predict(self.x_valid.loc[:, s])
-
-            if isinstance(y_valid, pd.Series):
-                y_valid = fill_reshape(y_valid)
-
-            score = f1(y_valid, y_pred)
+            score = f1(y_valid_reshaped, y_pred)
 
             if score > f1_best:
                 f1_best = score
