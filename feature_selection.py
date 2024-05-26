@@ -140,8 +140,7 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
         tree = DecisionTreeClassifier()
         classifier = MultiLabelLocalClassifierPerNode(local_classifier=tree)
 
-        selector = IterativeSelect().fit(x_train, y_train)
-        selector = selector.set_params(x_valid=x_valid, y_valid=y_valid, r_seed=42)
+        selector = IterativeSelect(x_valid=x_valid, y_valid=y_valid, r_seed=42).fit(x_train, y_train)
         x_train = selector.transform(x_train)
 
         classifier.fit(x_train, y_train)
@@ -158,6 +157,17 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
                  epochs=10,
                  r_seed=None,
                  verbose=False):
+        """
+        Create IterativeSelect object
+
+        :param x_valid: validation data to compare selections - features
+        :param y_valid: validation data to compare selections - labels
+        :param k: number of features to choose
+        :param sqrt_features: choose square root of number of features instead of k
+        :param epochs: number of iterations
+        :param r_seed: seed to subset generator
+        :param verbose: print logs to output
+        """
         self.x_valid = x_valid
         self.y_valid = y_valid
         self.k = k
