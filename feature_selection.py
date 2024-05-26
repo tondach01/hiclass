@@ -129,9 +129,6 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
     def __init__(self, *, k=10, sqrt_features=False):
         self.k = k
         self.sqrt_features = sqrt_features
-        self.selector_ = None
-        self.feature_names_in_ = None
-        self.n_features_in_ = None
 
     def set_params(self, k=10, sqrt_features=False) -> 'ModSelectKBest':
         self.k = k
@@ -152,12 +149,6 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
         self.selector_ = SelectKBest(mutual_info_classif, k=self.k).fit(x_exp, y_exp)
         self.feature_names_in_ = x.columns
         return self
-
-    def transform(self, x):
-        check_is_fitted(self)
-        mask = self._get_support_mask()
-        feats = [f for i, f in enumerate(self.feature_names_in_) if mask[i]]
-        return x.get(feats)
 
     def _get_support_mask(self):
         check_is_fitted(self)
