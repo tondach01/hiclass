@@ -24,8 +24,8 @@ def fill_reshape(y) -> np.ndarray:
     :return: array of x=hierarchy, y=labels per example, z=examples
     """
     if isinstance(y, pd.Series):
-        max_len = y.apply(len).agg(max)
-        depth = y.apply(lambda x: max([len(label) for label in x])).agg(max)
+        max_len = y.apply(len).agg("max")
+        depth = y.apply(lambda x: max(map(len, x))).agg("max")
     else:
         max_len = max(map(len, y))
         depth = max(map(lambda x: max(map(len, x)), y))
