@@ -129,6 +129,9 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
     def __init__(self, *, k=10, sqrt_features=False):
         self.k = k
         self.sqrt_features = sqrt_features
+        self.selector_ = None
+        self.feature_names_in_ = None
+        self.n_features_in_ = None
 
     def set_params(self, k=10, sqrt_features=False) -> 'ModSelectKBest':
         self.k = k
@@ -137,11 +140,24 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
 
     def fit(self, x, y):
         self.n_features_in_ = x.shape[1]
-        y = y.map(lambda label: "/".join(label))
+
+        y_pd = pd.DataFrame(y, columns=["class"])
+        x_exp = self._expand_multi_class(pd.concat([x, y_pd], axis=1))
+        y_exp = x_exp["class"].copy()
+        x_exp.drop(columns="class", inplace=True)
+
+        y_exp = y_exp.map(lambda label: "/".join(label))
         if self.sqrt_features:
             self.k = floor(sqrt(x.shape[1]))
-        self.selector_ = SelectKBest(mutual_info_classif, k=self.k).fit(x, y)
+        self.selector_ = SelectKBest(mutual_info_classif, k=self.k).fit(x_exp, y_exp)
+        self.feature_names_in_ = x.columns
         return self
+
+    def transform(self, x):
+        check_is_fitted(self)
+        mask = self._get_support_mask()
+        feats = [f for i, f in enumerate(self.feature_names_in_) if mask[i]]
+        return x.get(feats)
 
     def _get_support_mask(self):
         check_is_fitted(self)
@@ -150,6 +166,16 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
 
     def _more_tags(self):
         return {"requires_y": True}
+
+    @staticmethod
+    def _expand_multi_class(df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Expand the dataset so that each row has just one class label
+
+        :param df: dataset to be expanded
+        :return: the same dataset, but multi-label rows are duplicated for each label
+        """
+        return df.explode("class", ignore_index=True)
 
 
 def iterative_select(x: pd.DataFrame, y: pd.Series, x_valid: pd.DataFrame, y_valid: pd.Series, k=10,
