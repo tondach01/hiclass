@@ -306,7 +306,11 @@ class IterativeSelect(SelectorMixin, BaseEstimator):
             classifier.fit(x.loc[:, s], y)
 
             y_pred = classifier.predict(self.x_valid.loc[:, s])
-            score = f1(y_valid_reshaped, y_pred)
+
+            if isinstance(y_valid, pd.Series):
+                y_valid = fill_reshape(y_valid)
+
+            score = f1(y_valid, y_pred)
 
             if score > f1_best:
                 f1_best = score
