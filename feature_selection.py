@@ -86,16 +86,10 @@ def fill_reshape(y: pd.Series) -> np.ndarray:
     return y
 
 
-def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = False) -> list:
+class ModSelectKBest(SelectorMixin, BaseEstimator):
     """
     Perform "flat" selection of k best parameters based on mutual information. The hierarchy is ignored and labels
     worked with as strings
-
-    :param x: features, expanded and imputed
-    :param y: labels
-    :param k: number of features to be chosen
-    :param sqrt_features: take square root of number of features as k
-    :return: names of selected features
 
     Sample usage:
         import load
@@ -104,34 +98,30 @@ def select_k_best(x: pd.DataFrame, y: pd.Series, k=10, sqrt_features: bool = Fal
         from hiclass.MultiLabelLocalClassifierPerNode import MultiLabelLocalClassifierPerNode
         from hiclass.metrics import f1
 
-        x_train, y_train = dataset.x_train(expand=True), dataset.y_train(expand=True)
+        dataset = load.Dataset("cellcycle", nan_strategy="mean")
+        x_train, y_train = dataset.x_train(), dataset.y_train()
         x_test, y_test = dataset.x_test(), dataset.y_test()
 
         tree = DecisionTreeClassifier()
         classifier = MultiLabelLocalClassifierPerNode(local_classifier=tree)
 
-        feats = feature_selection.select_k_best(x_train, y_train, k=5)
+        selector = ModSelectKBest().fit(x_train, y_train)
+        x_train = selector.transform(x_train)
 
-        # to force multi-label classification, unexpanded data have to be fed in
-        classifier.fit(dataset.x_train().get(feats), dataset.y_train())
+        classifier.fit(x_train, y_train)
 
-        y_pred = classifier.predict(x_test.get(feats))
+        y_pred = classifier.predict(selector.transform(x_test))
         print(f1(fill_reshape(y_test), y_pred))
-    """
-    y = y.map(lambda label: "/".join(label))
-    if sqrt_features:
-        k = floor(sqrt(x.shape[1]))
-    selector = SelectKBest(mutual_info_classif, k=k).fit(x, y)
-    return selector.get_feature_names_out(input_features=x.columns)
-
-
-class ModSelectKBest(SelectorMixin, BaseEstimator):
+        """
     def __init__(self, *, k=10, sqrt_features=False):
+        """
+        Create ModSelectKBest object
+
+        :param k: number of features to be chosen
+        :param sqrt_features: take square root of number of features as k
+        """
         self.k = k
         self.sqrt_features = sqrt_features
-        self.selector_ = None
-        self.feature_names_in_ = None
-        self.n_features_in_ = None
 
     def set_params(self, k=10, sqrt_features=False) -> 'ModSelectKBest':
         self.k = k
@@ -152,12 +142,6 @@ class ModSelectKBest(SelectorMixin, BaseEstimator):
         self.selector_ = SelectKBest(mutual_info_classif, k=self.k).fit(x_exp, y_exp)
         self.feature_names_in_ = x.columns
         return self
-
-    def transform(self, x):
-        check_is_fitted(self)
-        mask = self._get_support_mask()
-        feats = [f for i, f in enumerate(self.feature_names_in_) if mask[i]]
-        return x.get(feats)
 
     def _get_support_mask(self):
         check_is_fitted(self)
