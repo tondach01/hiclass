@@ -15,7 +15,7 @@ class Dataset:
         datasets_FUN -> XXX_FUN -> XXX_FUN.{train,test,valid}.arff.zip
     """
 
-    def __init__(self, dataset_name: str, nan_strategy: str = "mean", args=None):
+    def __init__(self, dataset_name: str, nan_strategy: str = "mean", one_hot: bool = True, args=None):
         """
         Create Dataset object, consisting of training/testing/validation data
 
@@ -23,6 +23,7 @@ class Dataset:
         expr, gasch1, gasch2, hom, pheno, seq, spo, struc}
         :param nan_strategy: strategy to be used for NaN values - one of "mean", "knn", "remove". If not
         provided or not one of allowed, "mean" is used
+        :param one_hot: whether to one-hot encode categorical features
         :param args: possible dictionary of arguments to NaN-handling functions
 
         the hom_FUN dataset is quite large and takes a lot of time to process
@@ -61,7 +62,7 @@ class Dataset:
 
                     # might be a problem when "mean" imputing one-hot encoded category with > 2 levels
                     categories = [column for column, t in types.items() if t == "category"]
-                    if categories:
+                    if one_hot and categories:
                         enc = OneHotEncoder(sparse_output=False)
                         encoded_columns = enc.fit_transform(d[categories])
                         encoded_df = pd.DataFrame(encoded_columns,
